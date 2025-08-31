@@ -14,18 +14,19 @@ class FileProcessor:
         从文件夹名称提取耳号和日期信息
         
         Args:
-            folder_name: 文件夹名称，如 "00000010-2025-06-21-10-41-09-066"
+            folder_name: 文件夹名称，如 "00000101-2025-06-22-13-57-51-584"
             
         Returns:
             (ear_number, date_str) 元组
         """
-        # 解析文件夹名称格式：00000010-2025-06-21-10-41-09-066
-        # 其中 10 是耳号，2025-06-21 是日期
-        pattern = r'^000000(\d+)-(\d{4}-\d{2}-\d{2})-\d{2}-\d{2}-\d{2}-\d+$'
+        # 解析文件夹名称格式：00000101-2025-06-22-13-57-51-584
+        # 其中 101 是耳号，2025-06-22 是日期
+        # 支持不同位数的耳号：00000010, 00000101, 000000123 等
+        pattern = r'^0*(\d+)-(\d{4}-\d{2}-\d{2})-\d{2}-\d{2}-\d{2}-\d+$'
         match = re.match(pattern, folder_name)
         
         if match:
-            ear_number = match.group(1)  # 耳号
+            ear_number = match.group(1)  # 耳号（去掉前导零）
             date_str = match.group(2)    # 日期
             return ear_number, date_str
         else:

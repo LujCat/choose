@@ -24,7 +24,7 @@ DIRECTORY_CONFIG = {
     'epcdata_folder_name': 'epcdata',
     'score_bin_size': 10,  # 分数区间大小
     'new_structure': True,  # 使用新的目录结构
-    'folder_pattern': r'^000000(\d+)-(\d{4}-\d{2}-\d{2})-\d{2}-\d{2}-\d{2}-\d+$'
+    'folder_pattern': r'^0*(\d+)-(\d{4}-\d{2}-\d{2})-\d{2}-\d{2}-\d{2}-\d+$'
 }
 
 # 新的目录结构配置
@@ -32,7 +32,7 @@ STRUCTURE_CONFIG = {
     'root': 'score',
     'levels': ['date', 'ear_number', 'score', 'folder_name'],
     'date_format': 'YYYY-MM-DD',
-    'ear_number_prefix': '000000'
+    'ear_number_prefix': '0*'  # 支持任意数量的前导零
 }
 
 # 日志配置
