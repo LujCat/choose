@@ -116,6 +116,19 @@ class ImageClassifier:
         self._display_structure_summary(structure_info)
         
         print(f"\n✅ 处理完成！成功处理 {success_count}/{len(image_files)} 个文件夹")
+        
+        # 重命名耳号文件夹，添加数量信息
+        print("\n🔄 开始重命名耳号文件夹...")
+        file_processor.rename_ear_folders_with_count()
+        
+        # 生成统计报告
+        print("\n📊 开始生成统计报告...")
+        count_stats = file_processor.generate_statistics_report()
+        
+        # 显示统计结果
+        self._display_count_statistics(count_stats)
+        
+        print("\n🎉 所有操作完成！")
     
     def _display_structure_summary(self, structure_info: dict):
         """显示目录结构统计信息"""
@@ -146,6 +159,19 @@ class ImageClassifier:
             total_folders += date_total
         
         print(f"\n🎯 总体统计: {total_folders} 个文件夹")
+    
+    def _display_count_statistics(self, count_stats: dict):
+        """显示数量区间统计信息"""
+        if not count_stats:
+            return
+        
+        print("\n📈 数量区间统计:")
+        print("=" * 40)
+        print(f"大于2个文件夹的耳号数量: {count_stats['>2']}")
+        print(f"大于3个文件夹的耳号数量: {count_stats['>3']}")
+        print(f"大于4个文件夹的耳号数量: {count_stats['>4']}")
+        print(f"大于5个文件夹的耳号数量: {count_stats['>5']}")
+        print("=" * 40)
     
     def is_ready(self):
         """检查分类器是否准备就绪"""

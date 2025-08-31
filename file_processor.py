@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Tuple
+from typing import Tuple, Dict
 import re
 
 class FileProcessor:
@@ -8,6 +8,7 @@ class FileProcessor:
     
     def __init__(self, root_dir: str):
         self.root_dir = root_dir
+        self.ear_folder_counts = {}  # 记录每个耳号的文件夹数量
     
     def extract_folder_info(self, folder_name: str) -> Tuple[str, str]:
         """
@@ -70,6 +71,14 @@ class FileProcessor:
             score_folder,       # 分数
             folder_name         # 具体文件夹
         )
+        
+        # 记录耳号文件夹数量（用于后续重命名）
+        # 注意：只有非undetected的才计入统计
+        if score_folder != "undetected":
+            key = f"{date_str}_{ear_number}"
+            if key not in self.ear_folder_counts:
+                self.ear_folder_counts[key] = 0
+            self.ear_folder_counts[key] += 1
         
         return target
     
@@ -140,3 +149,179 @@ class FileProcessor:
         # 注意：具体的日期和耳号目录会在处理过程中动态创建
         # 这里只创建基础的score目录
         print("📁 创建score目录结构")
+    
+    def rename_ear_folders_with_count(self):
+        """
+        重命名耳号文件夹，添加数量信息
+        将 耳号 重命名为 耳号-数量
+        注意：只重命名包含有效检测结果的耳号文件夹
+        """
+        score_dir = os.path.join(self.root_dir, 'score')
+        if not os.path.exists(score_dir):
+            return
+        
+        print("\n🔄 开始重命名耳号文件夹，添加数量信息...")
+        print("⚠️  注意：undetected文件夹中的耳号不会被重命名")
+        
+        for date_folder in os.listdir(score_dir):
+            date_path = os.path.join(score_dir, date_folder)
+            if not os.path.isdir(date_path) or date_folder == 'undetected':
+                continue
+            
+            print(f"📅 处理日期: {date_folder}")
+            
+            for ear_folder in os.listdir(date_path):
+                ear_path = os.path.join(date_path, ear_folder)
+                if not os.path.isdir(ear_path):
+                    continue
+                
+                # 检查是否是耳号文件夹（纯数字）
+                if not ear_folder.isdigit():
+                    continue
+                
+                # 计算该耳号下的有效文件夹数量（排除undetected）
+                folder_count = 0
+                for item in os.listdir(ear_path):
+                    item_path = os.path.join(ear_path, item)
+                    if os.path.isdir(item_path) and item != 'cuboid' and item != 'undetected':
+                        folder_count += 1
+                
+                # 重命名耳号文件夹
+                if folder_count > 0:
+                    new_name = f"{ear_folder}-{folder_count}"
+                    new_path = os.path.join(date_path, new_name)
+                    
+                    try:
+                        os.rename(ear_path, new_path)
+                        print(f"  🏷️  {ear_folder} -> {new_name} ({folder_count} 个有效文件夹)")
+                    except Exception as e:
+                        print(f"  ❌ 重命名失败 {ear_folder}: {e}")
+                else:
+                    print(f"  ⚠️  {ear_folder}: 未找到有效文件夹")
+        
+        print("✅ 耳号文件夹重命名完成")
+    
+    def generate_statistics_report(self):
+        """
+        生成统计报告，统计不同数量区间的耳号文件夹数量
+        并保存为txt文件
+        注意：排除undetected文件夹，只统计有效检测的耳号
+        """
+        score_dir = os.path.join(self.root_dir, 'score')
+        if not os.path.exists(score_dir):
+            return
+        
+        print("\n📊 开始生成统计报告...")
+        print("⚠️  注意：undetected文件夹中的耳号不计入统计")
+        
+        # 统计不同数量区间的耳号文件夹
+        count_stats = {
+            '>2': 0,   # 大于2个文件夹的耳号数量
+            '>3': 0,   # 大于3个文件夹的耳号数量
+            '>4': 0,   # 大于4个文件夹的耳号数量
+            '>5': 0    # 大于5个文件夹的耳号数量
+        }
+        
+        # 记录详细信息
+        detailed_stats = {}
+        
+        for date_folder in os.listdir(score_dir):
+            date_path = os.path.join(score_dir, date_folder)
+            if not os.path.isdir(date_path) or date_folder == 'undetected':
+                continue
+            
+            detailed_stats[date_folder] = {}
+            
+            for ear_folder in os.listdir(date_path):
+                ear_path = os.path.join(date_path, ear_folder)
+                if not os.path.isdir(ear_path):
+                    continue
+                
+                # 检查是否是重命名后的耳号文件夹（格式：耳号-数量）
+                if '-' not in ear_folder:
+                    continue
+                
+                try:
+                    ear_number, folder_count_str = ear_folder.rsplit('-', 1)
+                    folder_count = int(folder_count_str)
+                    
+                    # 统计不同区间
+                    if folder_count > 2:
+                        count_stats['>2'] += 1
+                    if folder_count > 3:
+                        count_stats['>3'] += 1
+                    if folder_count > 4:
+                        count_stats['>4'] += 1
+                    if folder_count > 5:
+                        count_stats['>5'] += 1
+                    
+                    # 记录详细信息
+                    if ear_number not in detailed_stats[date_folder]:
+                        detailed_stats[date_folder][ear_number] = folder_count
+                    
+                except ValueError:
+                    continue
+        
+        # 生成报告内容
+        report_content = self._format_statistics_report(count_stats, detailed_stats)
+        
+        # 保存为txt文件
+        report_path = os.path.join(self.root_dir, 'statistics_report.txt')
+        try:
+            with open(report_path, 'w', encoding='utf-8') as f:
+                f.write(report_content)
+            print(f"📄 统计报告已保存到: {report_path}")
+        except Exception as e:
+            print(f"❌ 保存统计报告失败: {e}")
+        
+        return count_stats
+    
+    def _format_statistics_report(self, count_stats: Dict[str, int], detailed_stats: Dict) -> str:
+        """格式化统计报告内容"""
+        report_lines = []
+        report_lines.append("=" * 60)
+        report_lines.append("YOLOv5 自动分类系统 - 统计报告")
+        report_lines.append("=" * 60)
+        report_lines.append("")
+        report_lines.append("📋 说明：本报告仅统计有效检测的耳号，undetected文件夹不计入统计")
+        report_lines.append("")
+        
+        # 总体统计
+        report_lines.append("📊 总体统计")
+        report_lines.append("-" * 30)
+        report_lines.append(f"大于2个文件夹的耳号数量: {count_stats['>2']}")
+        report_lines.append(f"大于3个文件夹的耳号数量: {count_stats['>3']}")
+        report_lines.append(f"大于4个文件夹的耳号数量: {count_stats['>4']}")
+        report_lines.append(f"大于5个文件夹的耳号数量: {count_stats['>5']}")
+        report_lines.append("")
+        
+        # 详细统计
+        report_lines.append("📋 详细统计（按日期）")
+        report_lines.append("-" * 30)
+        
+        for date in sorted(detailed_stats.keys()):
+            report_lines.append(f"📅 日期: {date}")
+            
+            # 按文件夹数量排序
+            sorted_ears = sorted(detailed_stats[date].items(), 
+                               key=lambda x: x[1], reverse=True)
+            
+            for ear_number, folder_count in sorted_ears:
+                report_lines.append(f"  🏷️  耳号 {ear_number}: {folder_count} 个有效文件夹")
+            
+            report_lines.append("")
+        
+        # 总结
+        report_lines.append("🎯 总结")
+        report_lines.append("-" * 30)
+        total_ears = sum(len(ears) for ears in detailed_stats.values())
+        report_lines.append(f"有效耳号数量: {total_ears}")
+        report_lines.append(f"总日期数量: {len(detailed_stats)}")
+        report_lines.append("")
+        report_lines.append("=" * 60)
+        
+        return "\n".join(report_lines)
+    
+    def get_ear_folder_counts(self) -> Dict[str, int]:
+        """获取耳号文件夹数量统计"""
+        return self.ear_folder_counts.copy()
