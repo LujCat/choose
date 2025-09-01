@@ -1,3 +1,19 @@
+# YOLOv5 自动分类系统依赖包
+
+# 核心依赖
+numpy>=1.21.0
 opencv-python>=4.5.0
-numpy>=1.19.0
-onnxruntime>=1.8.0
+onnxruntime>=1.12.0
+
+# 可选：GPU加速支持
+# 如果需要CUDA支持，请安装：
+# onnxruntime-gpu>=1.12.0
+
+# 系统兼容性
+# Windows: 建议使用 onnxruntime-gpu 获得更好的性能
+# Linux/macOS: 可以使用 onnxruntime 或 onnxruntime-gpu
+
+# 注意：
+# 1. 如果遇到CUDA错误，程序会自动回退到CPU模式
+# 2. 确保安装了正确版本的CUDA和cuDNN（如果使用GPU）
+# 3. 建议先尝试CPU版本，确认功能正常后再考虑GPU优化

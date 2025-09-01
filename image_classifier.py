@@ -128,6 +128,9 @@ class ImageClassifier:
         # 显示统计结果
         self._display_count_statistics(count_stats)
         
+        # 确保所有耳号都有cuboid文件夹
+        file_processor.ensure_all_ears_have_cuboid()
+        
         print("\n🎉 所有操作完成！")
     
     def _display_structure_summary(self, structure_info: dict):
@@ -167,10 +170,10 @@ class ImageClassifier:
         
         print("\n📈 数量区间统计:")
         print("=" * 40)
-        print(f"大于2个文件夹的耳号数量: {count_stats['>2']}")
-        print(f"大于3个文件夹的耳号数量: {count_stats['>3']}")
-        print(f"大于4个文件夹的耳号数量: {count_stats['>4']}")
-        print(f"大于5个文件夹的耳号数量: {count_stats['>5']}")
+        print(f"大于等于2个文件夹的耳号数量: {count_stats['>=2']}")
+        print(f"大于等于3个文件夹的耳号数量: {count_stats['>=3']}")
+        print(f"大于等于4个文件夹的耳号数量: {count_stats['>=4']}")
+        print(f"大于等于5个文件夹的耳号数量: {count_stats['>=5']}")
         print("=" * 40)
     
     def is_ready(self):
